@@ -142,12 +142,28 @@ async def cb_earn_stars(callback: types.CallbackQuery):
 @dp.callback_query(F.data == "withdraw")
 async def cb_withdraw(callback: types.CallbackQuery):
     user = await db.get_user(callback.from_user.id)
-    if user[2] < 50: # Минималка 50 звезд (можешь изменить)
-        await callback.answer(f"❌ Минимальная сумма вывода: 50 Stars.\nУ тебя: {user[2]}", show_alert=True)
+    if user[3] < 5:
+        await callback.answer(
+            f"❌ Для вывода нужно пригласить минимум 5 человек.\nПриглашено: {user[3]}/5",
+            show_alert=True
+        )
+    elif user[2] < 50:
+        await callback.answer(
+            f"❌ Минимальная сумма вывода: 50 Stars.\nУ тебя: {user[2]}",
+            show_alert=True
+        )
     else:
-        await callback.message.edit_text("📥 Заявка на вывод отправлена администратору! Ожидайте.", 
-                                         reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="⬅️ Назад", callback_data="back_menu")]]))
-        await bot.send_message(ADMIN_ID, f"⚠️ **Заявка на вывод!**\nПользователь: `{user[0]}`\nСумма: {user[2]} Stars", parse_mode="Markdown")
+        await callback.message.edit_text(
+            "📥 Заявка на вывод отправлена администратору! Ожидайте.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="⬅️ Назад", callback_data="back_menu")]
+            ])
+        )
+        await bot.send_message(
+            ADMIN_ID,
+            f"⚠️ **Заявка на вывод!**\nПользователь: `{user[0]}`\nСумма: {user[2]} Stars",
+            parse_mode="Markdown"
+        )
 
 @dp.callback_query(F.data == "stats")
 async def cb_stats(callback: types.CallbackQuery):
