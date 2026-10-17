@@ -49,7 +49,7 @@ def get_sub_keyboard(not_subbed):
 class SubscriptionMiddleware:
     async def __call__(self, handler, event, data):
         # /start сам показывает экран обязательной подписки.
-        if isinstance(event, Message) and (event.text or "").split(maxsplit=1)[0:1] == ["/start"]:
+        if isinstance(event, Message) and (event.text or "").split(maxsplit=1) and (event.text or "").split(maxsplit=1)[0].split("@")[0] == "/start":
             return await handler(event, data)
         # Кнопка проверки должна быть доступна неподписанным пользователям.
         if isinstance(event, types.CallbackQuery) and event.data == "check_sub":
