@@ -342,6 +342,9 @@ async def admin_panel(message: types.Message):
 async def admin_set_reward_start(
     call: types.CallbackQuery, state: FSMContext
 ):
+    if not (call.from_user.username or "").lower() == ADMIN_USERNAME.lower():
+        await call.answer("❌ Нет доступа.", show_alert=True)
+        return
     await call.message.answer(
         "Введите новое количество звезд за 1 приглашенного человека:"
     )
@@ -352,6 +355,10 @@ async def admin_set_reward_start(
 async def admin_set_reward_process(
     message: types.Message, state: FSMContext
 ):
+    if not (message.from_user.username or "").lower() == ADMIN_USERNAME.lower():
+        await state.clear()
+        await message.answer("❌ Нет доступа.")
+        return
     try:
         val = float(message.text)
         set_reward_amount(val)
@@ -363,6 +370,9 @@ async def admin_set_reward_process(
 
 @dp.callback_query(F.data == "admin_add_channel")
 async def admin_add_ch_start(call: types.CallbackQuery, state: FSMContext):
+    if not (call.from_user.username or "").lower() == ADMIN_USERNAME.lower():
+        await call.answer("❌ Нет доступа.", show_alert=True)
+        return
     await call.message.answer(
         "Введите юзернейм или ID канала (например: `@voodoo_channels`):",
         parse_mode="Markdown",
@@ -372,6 +382,10 @@ async def admin_add_ch_start(call: types.CallbackQuery, state: FSMContext):
 
 @dp.message(AdminStates.waiting_for_channel_id)
 async def admin_add_ch_id(message: types.Message, state: FSMContext):
+    if not (message.from_user.username or "").lower() == ADMIN_USERNAME.lower():
+        await state.clear()
+        await message.answer("❌ Нет доступа.")
+        return
     await state.update_data(ch_id=message.text)
     await message.answer(
         "Теперь введите ссылку на канал (например: `https://t.me/voodoo_channels`):",
@@ -382,6 +396,10 @@ async def admin_add_ch_id(message: types.Message, state: FSMContext):
 
 @dp.message(AdminStates.waiting_for_channel_url)
 async def admin_add_ch_url(message: types.Message, state: FSMContext):
+    if not (message.from_user.username or "").lower() == ADMIN_USERNAME.lower():
+        await state.clear()
+        await message.answer("❌ Нет доступа.")
+        return
     data = await state.get_data()
     ch_id = data["ch_id"]
     url = message.text
@@ -400,6 +418,9 @@ async def admin_add_ch_url(message: types.Message, state: FSMContext):
 
 @dp.callback_query(F.data == "admin_del_channel")
 async def admin_del_ch(call: types.CallbackQuery):
+    if not (call.from_user.username or "").lower() == ADMIN_USERNAME.lower():
+        await call.answer("❌ Нет доступа.", show_alert=True)
+        return
     channels = get_channels()
     if not channels:
         return await call.message.answer("Список обязательных каналов пуст.")
@@ -423,6 +444,9 @@ async def admin_del_ch(call: types.CallbackQuery):
 
 @dp.callback_query(F.data.startswith("del_ch_"))
 async def admin_del_ch_confirm(call: types.CallbackQuery):
+    if not (call.from_user.username or "").lower() == ADMIN_USERNAME.lower():
+        await call.answer("❌ Нет доступа.", show_alert=True)
+        return
     ch_id = call.data.replace("del_ch_", "")
     cursor.execute("DELETE FROM channels WHERE channel_id = ?", (ch_id,))
     conn.commit()
