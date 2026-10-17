@@ -147,9 +147,9 @@ async def cb_withdraw(callback: types.CallbackQuery):
             f"❌ Для вывода нужно пригласить минимум 5 человек.\nПриглашено: {user[3]}/5",
             show_alert=True
         )
-    elif user[2] < 50:
+    elif user[2] < 15:
         await callback.answer(
-            f"❌ Минимальная сумма вывода: 50 Stars.\nУ тебя: {user[2]}",
+            f"❌ Минимальная сумма вывода: 15 Stars.\nУ тебя: {user[2]}",
             show_alert=True
         )
     else:
