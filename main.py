@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 import sqlite3
+from aiohttp import web
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
@@ -119,10 +120,7 @@ def main_menu_kb():
             KeyboardButton(text="🎁 Заработать звезды"),
             KeyboardButton(text="📥 Вывести звезды"),
         ],
-        [
-            KeyboardButton(text="📊 Статистика"),
-            KeyboardButton(text="ℹ️ О проекте"),
-        ],
+        [KeyboardButton(text="ℹ️ О проекте")],
     ]
     return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
 
@@ -314,16 +312,6 @@ async def withdraw_handler(message: types.Message):
     )
 
 
-@dp.message(F.text == "📊 Статистика")
-async def stats_handler(message: types.Message):
-    cursor.execute("SELECT COUNT(*) FROM users")
-    total_users = cursor.fetchone()[0]
-    await message.answer(
-        f"📊 **Статистика проекта:**\n\n👥 Всего пользователей: **{total_users}**",
-        parse_mode="Markdown",
-    )
-
-
 @dp.message(F.text == "ℹ️ О проекте")
 async def about_handler(message: types.Message):
     await message.answer(
@@ -441,10 +429,38 @@ async def admin_del_ch_confirm(call: types.CallbackQuery):
     await call.message.answer(f"✅ Канал {ch_id} удален из обязательных!")
 
 
+# --- HTTP HEALTH CHECK FOR RENDER ---
+async def health_check(request: web.Request) -> web.Response:
+    return web.json_response({"status": "ok", "service": "VoodooGifi"})
+
+
+async def start_health_server() -> web.AppRunner:
+    app = web.Application()
+    app.router.add_get("/", health_check)
+    app.router.add_get("/healthz", health_check)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    port = int(os.getenv("PORT", "10000"))
+    site = web.TCPSite(runner, host="0.0.0.0", port=port)
+    await site.start()
+    logging.info("Health server listening on 0.0.0.0:%s", port)
+    return runner
+
+
 # --- ЗАПУСК БОТА ---
 async def main():
-    await dp.start_polling(bot)
+    runner = await start_health_server()
+    try:
+        await bot.delete_webhook(drop_pending_updates=False)
+        await dp.start_polling(bot)
+    finally:
+        await runner.cleanup()
+        await bot.session.close()
+        conn.close()
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except (KeyboardInterrupt, SystemExit):
+        logging.info("Bot stopped.")
