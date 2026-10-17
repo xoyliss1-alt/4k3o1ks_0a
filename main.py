@@ -40,12 +40,18 @@ def get_sub_keyboard(not_subbed):
 
 def get_main_keyboard(is_admin=False):
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="👤 Мой профиль", callback_data="profile")],
-        [InlineKeyboardButton(text="⭐ Баланс", callback_data="balance")],
-        [InlineKeyboardButton(text="🎁 Заработать звезды", callback_data="earn_stars")],
-        [InlineKeyboardButton(text="📥 Вывести звезды", callback_data="withdraw")],
-        [InlineKeyboardButton(text="📊 Статистика", callback_data="stats")],
-        [InlineKeyboardButton(text="ℹ️ О проекте", callback_data="about")]
+        [
+            InlineKeyboardButton(text="👤 Мой профиль", callback_data="profile"),
+            InlineKeyboardButton(text="⭐ Баланс", callback_data="balance")
+        ],
+        [
+            InlineKeyboardButton(text="🎁 Заработать звезды", callback_data="earn_stars"),
+            InlineKeyboardButton(text="📥 Вывести звезды", callback_data="withdraw")
+        ],
+        [
+            InlineKeyboardButton(text="📊 Статистика", callback_data="stats"),
+            InlineKeyboardButton(text="ℹ️ О проекте", callback_data="about")
+        ]
     ])
     if is_admin:
         kb.inline_keyboard.append([InlineKeyboardButton(text="⚙️ Админ-панель", callback_data="admin_panel")])
@@ -77,7 +83,7 @@ async def start_cmd(message: Message, state: FSMContext):
         await message.answer("👋 Привет! Для начала работы подпишись на наши каналы:", reply_markup=get_sub_keyboard(not_subbed))
     else:
         is_admin = message.from_user.id == ADMIN_ID
-        await message.answer("🌟 Добро пожаловать в WoodooGifi!\nВыбери действие в меню:", reply_markup=get_main_keyboard(is_admin))
+        await message.answer("🌟 **Добро пожаловать в WoodooGifi!**\n\n✨ Твой мир Telegram Stars начинается здесь.\nВыбери нужный раздел в меню ниже:", reply_markup=get_main_keyboard(is_admin), parse_mode="Markdown")
 
 @dp.callback_query(F.data == "check_sub")
 async def cb_check_sub(callback: types.CallbackQuery):
@@ -86,7 +92,7 @@ async def cb_check_sub(callback: types.CallbackQuery):
         await callback.answer("❌ Вы подписались не на все каналы!", show_alert=True)
     else:
         is_admin = callback.from_user.id == ADMIN_ID
-        await callback.message.edit_text("✅ Спасибо за подписку! Выбери действие:", reply_markup=get_main_keyboard(is_admin))
+        await callback.message.edit_text("✅ **Спасибо за подписку!**\n\n🌟 Добро пожаловать в WoodooGifi!\nВыбери нужный раздел в меню ниже:", reply_markup=get_main_keyboard(is_admin), parse_mode="Markdown")
 
 # --- МЕНЮ ---
 @dp.callback_query(F.data == "profile")
