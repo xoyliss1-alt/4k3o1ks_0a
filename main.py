@@ -19,24 +19,62 @@ class AdminStates(StatesGroup):
     wait_reward = State()
 
 # --- ФУНКЦИИ ПРОВЕРКИ И КЛАВИАТУРЫ ---
+REQUIRED_CHANNEL = "@voodoo_Channels"
+
 async def check_sub(user_id: int):
-    channels = await db.get_all_channels()
+    # Обязательный канал плюс каналы, добавленные администратором.
+    channels = list(dict.fromkeys([REQUIRED_CHANNEL, *(await db.get_all_channels())]))
     not_subbed = []
     for ch in channels:
         try:
             member = await bot.get_chat_member(chat_id=ch, user_id=user_id)
-            if member.status in ["left", "kicked"]:
+            if member.status in ["left", "kicked"] or getattr(member, "is_member", True) is False:
                 not_subbed.append(ch)
         except Exception:
-            pass # Если бот не админ в канале, пропускаем проверку
+            # Не пропускаем пользователя, если проверка не удалась.
+            logging.exception("Не удалось проверить подписку на %s", ch)
+            not_subbed.append(ch)
     return not_subbed
 
 def get_sub_keyboard(not_subbed):
     kb = InlineKeyboardMarkup(inline_keyboard=[])
     for ch in not_subbed:
-        kb.inline_keyboard.append([InlineKeyboardButton(text=f"📢 Подписаться на {ch}", url=f"https://t.me/{ch.replace('@', '')}")])
+        channel_name = ch.lstrip("@")
+        kb.inline_keyboard.append([
+            InlineKeyboardButton(text=f"📢 Подписаться на {ch}", url=f"https://t.me/{channel_name}")
+        ])
     kb.inline_keyboard.append([InlineKeyboardButton(text="✅ Проверить подписку", callback_data="check_sub")])
     return kb
+
+class SubscriptionMiddleware:
+    async def __call__(self, handler, event, data):
+        # /start сам показывает экран обязательной подписки.
+        if isinstance(event, Message) and (event.text or "").split(maxsplit=1)[0:1] == ["/start"]:
+            return await handler(event, data)
+        # Кнопка проверки должна быть доступна неподписанным пользователям.
+        if isinstance(event, types.CallbackQuery) and event.data == "check_sub":
+            return await handler(event, data)
+
+        not_subbed = await check_sub(event.from_user.id)
+        if not not_subbed:
+            return await handler(event, data)
+
+        if isinstance(event, Message):
+            await event.answer(
+                "⛔ Чтобы пользоваться WoodooGifi, сначала подпишись на обязательный канал:",
+                reply_markup=get_sub_keyboard(not_subbed)
+            )
+        elif isinstance(event, types.CallbackQuery):
+            await event.answer("⛔ Сначала подпишись на обязательный канал!", show_alert=True)
+            if event.message:
+                await event.message.answer(
+                    "⛔ Чтобы пользоваться WoodooGifi, сначала подпишись на обязательный канал:",
+                    reply_markup=get_sub_keyboard(not_subbed)
+                )
+        return
+
+dp.message.middleware(SubscriptionMiddleware())
+dp.callback_query.middleware(SubscriptionMiddleware())
 
 def get_main_keyboard(is_admin=False):
     kb = InlineKeyboardMarkup(inline_keyboard=[
